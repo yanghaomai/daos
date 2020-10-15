@@ -249,22 +249,6 @@ iv_entry_free(struct ds_iv_entry *entry)
 }
 
 static int
-fetch_iv_value(struct ds_iv_entry *entry, struct ds_iv_key *key,
-	       d_sg_list_t *dst, d_sg_list_t *src, void *priv)
-{
-	struct ds_iv_class	*class = entry->iv_class;
-	int			rc;
-
-	if (class->iv_class_ops && class->iv_class_ops->ivc_ent_fetch)
-		rc = class->iv_class_ops->ivc_ent_fetch(entry, key, dst, src,
-							priv);
-	else
-		rc = daos_sgl_copy_data(dst, src);
-
-	return rc;
-}
-
-static int
 update_iv_value(struct ds_iv_entry *entry, struct ds_iv_key *key,
 		d_sg_list_t *src, void **priv)
 {
@@ -403,7 +387,7 @@ ivc_on_fetch(crt_iv_namespace_t ivns, crt_iv_key_t *iv_key,
 	}
 
 	valid = iv_entry_valid(entry, &key);
-	D_DEBUG(DB_TRACE, "FETCH: Key [%d:%d] entry %p valid %s\n", key.rank,
+	D_DEBUG(DB_MD, "FETCH: Key [%d:%d] entry %p valid %s\n", key.rank,
 		key.class_id, entry, valid ? "yes" : "no");
 
 	/* Forward the request to its parent if it is not root, and
@@ -423,9 +407,21 @@ ivc_on_fetch(crt_iv_namespace_t ivns, crt_iv_key_t *iv_key,
 			return -DER_IVCB_FORWARD;
 	}
 
-	rc = fetch_iv_value(entry, &key, iv_value, &entry->iv_value, priv);
-	if (rc == 0)
-		entry->iv_valid = true;
+	if (entry->iv_class->iv_class_ops &&
+	    entry->iv_class->iv_class_ops->ivc_ent_fetch)
+		rc = entry->iv_class->iv_class_ops->ivc_ent_fetch(entry, &key,
+								  iv_value,
+								  priv);
+	else
+		rc = daos_sgl_copy_data(iv_value, &entry->iv_value);
+
+	/* store the value of the result */
+	if (flags & CRT_IV_FLAG_PENDING_FETCH &&
+	    rc == -DER_IVCB_FORWARD) {
+		D_DEBUG(DB_MD, "[%d:%d] reset to 0 during IV aggregation.\n",
+			key.rank, key.class_id);
+		rc = 0;
+	}
 
 	return rc;
 }
@@ -462,8 +458,9 @@ iv_on_update_internal(crt_iv_namespace_t ivns, crt_iv_key_t *iv_key,
 		rc = update_iv_value(entry, &key, iv_value,
 				     priv_entry ? priv_entry->priv : NULL);
 	}
-	if (rc != -DER_IVCB_FORWARD && rc != 0) {
-		D_ERROR("key id %d update failed: rc = %d\n",
+
+	if (rc != 0) {
+		D_DEBUG(DB_MD, "key id %d update failed: rc = %d\n",
 			key.class_id, rc);
 		return rc;
 	}
@@ -550,7 +547,8 @@ ivc_on_get(crt_iv_namespace_t ivns, crt_iv_key_t *iv_key,
 
 	class = entry->iv_class;
 	if (iv_value) {
-		rc = class->iv_class_ops->ivc_value_alloc(entry, iv_value);
+		rc = class->iv_class_ops->ivc_value_alloc(entry, &key,
+							  iv_value);
 		if (rc)
 			D_GOTO(out, rc);
 	}
@@ -834,15 +832,20 @@ ds_iv_done(crt_iv_namespace_t ivns, uint32_t class_id,
 	cb_info->result = rc;
 
 	if (cb_info->opc == IV_FETCH && cb_info->value && rc == 0) {
-		struct ds_iv_entry	*entry;
-		struct ds_iv_key	key;
+		struct ds_iv_key key;
 
 		D_ASSERT(cb_info->ns != NULL);
-		entry = iv_class_entry_lookup(cb_info->ns, cb_info->key);
-		D_ASSERT(entry != NULL);
 		iv_key_unpack(&key, iv_key);
-		ret = fetch_iv_value(entry, &key, cb_info->value, iv_value,
-				     NULL);
+		if (iv_value->sg_iovs[0].iov_len > 0 &&
+		    cb_info->value->sg_iovs[0].iov_buf_len >=
+		    iv_value->sg_iovs[0].iov_len)
+			rc = daos_sgl_copy_data(cb_info->value, iv_value);
+		else
+			D_DEBUG(DB_MD, "key %d/%d does not"
+				" provide enough buf "DF_U64" < "
+				DF_U64"\n", key.class_id, key.rank,
+				cb_info->value->sg_iovs[0].iov_buf_len,
+				iv_value->sg_iovs[0].iov_len);
 	}
 
 	ABT_future_set(cb_info->future, &rc);
@@ -851,8 +854,8 @@ ds_iv_done(crt_iv_namespace_t ivns, uint32_t class_id,
 
 static int
 iv_op_internal(struct ds_iv_ns *ns, struct ds_iv_key *key_iv,
-	       d_sg_list_t *value, crt_iv_sync_t *sync, unsigned int shortcut,
-	       int opc)
+	       d_sg_list_t *value, crt_iv_sync_t *sync,
+	       unsigned int shortcut, int opc)
 {
 	struct iv_cb_info	cb_info;
 	ABT_future		future;
