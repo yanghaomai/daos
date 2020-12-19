@@ -50,6 +50,8 @@ datamover:
   mux_tool: !mux
   tool_dcp:
     tool: "DCP"
+  tool_fs_copy:
+    tool: "FS_COPY"
 dcp:
   src_path: "/"
   dst_path: "/"

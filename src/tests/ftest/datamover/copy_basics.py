@@ -181,10 +181,12 @@ class CopyBasicsTest(DataMoverTestBase):
             ["POSIX"] + posix1,
             ["DAOS_UNS"] + p1_c2])
 
-        copy_list.append([
-            "POSIX -> POSIX",
-            ["POSIX"] + posix1,
-            ["POSIX"] + posix2])
+        # FS_COPY does not yet support this
+        if self.tool != "FS_COPY":
+            copy_list.append([
+                "POSIX -> POSIX",
+                ["POSIX"] + posix1,
+                ["POSIX"] + posix2])
 
         # Run and verify each copy.
         # Each src or dst is a list of params:
@@ -204,7 +206,9 @@ class CopyBasicsTest(DataMoverTestBase):
 
             # file -> file variation
             # A UNS subset is not supported for both src and dst.
-            if not (src[0] == "DAOS_UNS" and dst[0] == "DAOS_UNS"):
+            # FS_COPY only supports directories.
+            if (not (src[0] == "DAOS_UNS" and dst[0] == "DAOS_UNS") and
+                    self.tool != "FS_COPY"):
                 self.run_datamover(
                     test_desc + " (file->file)",
                     src[0], join(src[1], self.test_file), src[2], src[3],
@@ -212,12 +216,14 @@ class CopyBasicsTest(DataMoverTestBase):
                 self.read_verify_location(dst[0], dst[1], dst[2], dst[3])
 
             # file -> dir variation
-            # This works because the destination dir is already created above
-            self.run_datamover(
-                test_desc + " (file->dir)",
-                src[0], join(src[1], self.test_file), src[2], src[3],
-                dst[0], dst[1], dst[2], dst[3])
-            self.read_verify_location(dst[0], dst[1], dst[2], dst[3])
+            # This works because the destination dir is already created above.
+            # FS_COPY only supports directories.
+            if self.tool != "FS_COPY":
+                self.run_datamover(
+                    test_desc + " (file->dir)",
+                    src[0], join(src[1], self.test_file), src[2], src[3],
+                    dst[0], dst[1], dst[2], dst[3])
+                self.read_verify_location(dst[0], dst[1], dst[2], dst[3])
 
     @skipForTicket("DAOS-6484")
     def test_copy_subsets(self):
@@ -276,29 +282,31 @@ class CopyBasicsTest(DataMoverTestBase):
             ["DAOS_UUID", sub_sub_dir, pool1, container1],
             ["DAOS_UUID", sub_sub_dir2, pool1, container1]])
 
-        sub_dir2 = self.new_daos_test_path(False)
-        copy_list.append([
-            "copy_subsets (uuid sub_dir to uns sub_dir)",
-            ["DAOS_UUID", sub_dir, pool1, container1],
-            ["DAOS_UNS", sub_dir2, pool1, container1]])
+        # FS_COPY does not yet support UNS paths
+        if self.tool != "FS_COPY":
+            sub_dir2 = self.new_daos_test_path(False)
+            copy_list.append([
+                "copy_subsets (uuid sub_dir to uns sub_dir)",
+                ["DAOS_UUID", sub_dir, pool1, container1],
+                ["DAOS_UNS", sub_dir2, pool1, container1]])
 
-        sub_sub_dir2 = self.new_daos_test_path(False, parent=sub_dir2)
-        copy_list.append([
-            "copy_subsets (uuid sub_dir to uns sub_sub_dir)",
-            ["DAOS_UUID", sub_dir, pool1, container1],
-            ["DAOS_UNS", sub_sub_dir2, pool1, container1]])
+            sub_sub_dir2 = self.new_daos_test_path(False, parent=sub_dir2)
+            copy_list.append([
+                "copy_subsets (uuid sub_dir to uns sub_sub_dir)",
+                ["DAOS_UUID", sub_dir, pool1, container1],
+                ["DAOS_UNS", sub_sub_dir2, pool1, container1]])
 
-        sub_dir2 = self.new_daos_test_path(False)
-        copy_list.append([
-            "copy_subsets (uns sub_dir to uuid sub_dir)",
-            ["DAOS_UNS", sub_dir, pool1, container1],
-            ["DAOS_UUID", sub_dir2, pool1, container1]])
+            sub_dir2 = self.new_daos_test_path(False)
+            copy_list.append([
+                "copy_subsets (uns sub_dir to uuid sub_dir)",
+                ["DAOS_UNS", sub_dir, pool1, container1],
+                ["DAOS_UUID", sub_dir2, pool1, container1]])
 
-        sub_sub_dir2 = self.new_daos_test_path(False, parent=sub_dir2)
-        copy_list.append([
-            "copy_subsets (uns sub_sub_dir to uuid sub_dir)",
-            ["DAOS_UNS", sub_sub_dir, pool1, container1],
-            ["DAOS_UUID", sub_sub_dir2, pool1, container1]])
+            sub_sub_dir2 = self.new_daos_test_path(False, parent=sub_dir2)
+            copy_list.append([
+                "copy_subsets (uns sub_sub_dir to uuid sub_sub_dir)",
+                ["DAOS_UNS", sub_sub_dir, pool1, container1],
+                ["DAOS_UUID", sub_sub_dir2, pool1, container1]])
 
         # Run and verify each copy.
         # Each src or dst is a list of params:
