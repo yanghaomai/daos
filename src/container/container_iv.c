@@ -355,6 +355,10 @@ cont_iv_prop_l2g(daos_prop_t *prop, struct cont_iv_prop *iv_prop)
 				 DAOS_ACL_MAX_PRINCIPAL_LEN);
 			strcpy(iv_prop->cip_owner_grp, prop_entry->dpe_str);
 			break;
+		case DAOS_PROP_CO_STATUS:
+			daos_prop_val_2_co_status(prop_entry->dpe_val,
+						  &iv_prop->cip_co_status);
+			break;
 		default:
 			D_ASSERTF(0, "bad dpe_type %d\n", prop_entry->dpe_type);
 			break;
@@ -1118,6 +1122,10 @@ cont_iv_prop_g2l(struct cont_iv_prop *iv_prop, daos_prop_t *prop)
 				owner_grp_alloc = prop_entry->dpe_str;
 			else
 				D_GOTO(out, rc = -DER_NOMEM);
+			break;
+		case DAOS_PROP_CO_STATUS:
+			prop_entry->dpe_val = daos_prop_co_status_2_val(
+						&iv_prop->cip_co_status);
 			break;
 		default:
 			D_ASSERTF(0, "bad dpe_type %d\n", prop_entry->dpe_type);

@@ -126,23 +126,23 @@ struct cont_iv_capa {
 
 /* flattened container properties */
 struct cont_iv_prop {
-	char		cip_label[DAOS_PROP_LABEL_MAX_LEN];
-	char		cip_owner[DAOS_ACL_MAX_PRINCIPAL_BUF_LEN];
-	char		cip_owner_grp[DAOS_ACL_MAX_PRINCIPAL_BUF_LEN];
-	uint64_t	cip_layout_type;
-	uint64_t	cip_layout_ver;
-	uint64_t	cip_csum;
-	uint64_t	cip_csum_chunk_size;
-	uint64_t	cip_csum_server_verify;
-	uint64_t	cip_dedup;
-	uint64_t	cip_dedup_size;
-	uint64_t	cip_redun_fac;
-	uint64_t	cip_redun_lvl;
-	uint64_t	cip_snap_max;
-	uint64_t	cip_compress;
-	uint64_t	cip_encrypt;
-
-	struct daos_acl	cip_acl;
+	char			cip_label[DAOS_PROP_LABEL_MAX_LEN];
+	char			cip_owner[DAOS_ACL_MAX_PRINCIPAL_BUF_LEN];
+	char			cip_owner_grp[DAOS_ACL_MAX_PRINCIPAL_BUF_LEN];
+	uint64_t		cip_layout_type;
+	uint64_t		cip_layout_ver;
+	uint64_t		cip_csum;
+	uint64_t		cip_csum_chunk_size;
+	uint64_t		cip_csum_server_verify;
+	uint64_t		cip_dedup;
+	uint64_t		cip_dedup_size;
+	uint64_t		cip_redun_fac;
+	uint64_t		cip_redun_lvl;
+	uint64_t		cip_snap_max;
+	uint64_t		cip_compress;
+	uint64_t		cip_encrypt;
+	struct daos_co_status	cip_co_status;
+	struct daos_acl		cip_acl;
 };
 
 struct cont_iv_agg_eph {
