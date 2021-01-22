@@ -23,7 +23,6 @@
 '''
 from data_mover_test_base import DataMoverTestBase
 from os.path import join, sep
-from apricot import skipForTicket
 
 
 class CopyBasicsTest(DataMoverTestBase):
@@ -59,7 +58,6 @@ class CopyBasicsTest(DataMoverTestBase):
         cmd = "mkdir -p {}".format(self.get_posix_test_path_string())
         self.execute_cmd(cmd)
 
-    @skipForTicket("DAOS-6484")
     def test_copy_types(self):
         """
         Test Description:
@@ -236,7 +234,6 @@ class CopyBasicsTest(DataMoverTestBase):
         self.run_datamover(test_desc="copy_auto_create_dest (different pool)")
         self.read_verify_location("DAOS_UUID", "/", pool2, new_uuid)
 
-    @skipForTicket("DAOS-5512")
     def test_copy_subsets(self):
         """
         Test Description:
