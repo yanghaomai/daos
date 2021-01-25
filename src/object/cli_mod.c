@@ -54,25 +54,32 @@ dc_obj_init(void)
 
 	rc = obj_utils_init();
 	if (rc)
-		goto out;
+		return rc;
 
 	rc = obj_class_init();
 	if (rc)
-		goto out;
+		goto out_utils;
 
 	rc = daos_rpc_register(&obj_proto_fmt, OBJ_PROTO_CLI_COUNT,
 				NULL, DAOS_OBJ_MODULE);
 	if (rc != 0) {
 		D_ERROR("failed to register daos obj RPCs: "DF_RC"\n",
 			DP_RC(rc));
-		D_GOTO(out, rc);
+		D_GOTO(out_oc, rc);
 	}
 
 	rc = obj_ec_codec_init();
-	if (rc != 0)
+	if (rc != 0) {
 		D_ERROR("failed to obj_ec_codec_init: "DF_RC"\n", DP_RC(rc));
-
-out:
+		goto out_rpc;
+	}
+	return 0;
+out_rpc:
+	daos_rpc_unregister(&obj_proto_fmt);
+out_oc:
+	obj_class_fini();
+out_utils:
+	obj_utils_fini();
 	return rc;
 }
 
