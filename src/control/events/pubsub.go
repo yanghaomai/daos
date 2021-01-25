@@ -111,8 +111,6 @@ func (ps *PubSub) Publish(event *RASEvent) {
 		return
 	}
 
-	ps.log.Debugf("publishing @%s: %s", event.Type, event.ID)
-
 	ps.events <- event
 }
 

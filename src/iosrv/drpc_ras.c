@@ -331,14 +331,64 @@ int
 ds_notify_swim_rank_dead(d_rank_t rank)
 {
 	Shared__RASEvent			evt = SHARED__RASEVENT__INIT;
-	int					rc;
 
-	rc = raise_ras(RAS_SWIM_RANK_DEAD,
-		       "SWIM marked rank as dead.",
-		       RAS_TYPE_STATE_CHANGE, RAS_SEV_INFO, NULL /* hwid */,
-		       &rank /* rank */, NULL /* jobid */, NULL /* pool */,
-		       NULL /* cont */, NULL /* objid */, NULL /* ctlop */,
-		       &evt);
+	return raise_ras(RAS_SWIM_RANK_DEAD,
+			 "SWIM marked rank as dead.",
+			 RAS_TYPE_STATE_CHANGE, RAS_SEV_INFO, NULL /* hwid */,
+			 &rank /* rank */, NULL /* jobid */, NULL /* pool */,
+			 NULL /* cont */, NULL /* objid */, NULL /* ctlop */,
+			 &evt);
+}
 
+static int
+raise_rbld_ras(ras_event_t id, uuid_t *pool, char *op_str, char *msg)
+{
+	Shared__RASEvent			evt = SHARED__RASEVENT__INIT;
+	d_rank_t				rank = dss_self_rank();
+
+	if ((pool == NULL) || uuid_is_null(*pool)) {
+		D_ERROR("invalid pool\n");
+		return -DER_INVAL;
+	}
+
+	evt.extended_info_case = SHARED__RASEVENT__EXTENDED_INFO_STR_INFO;
+	evt.str_info = op_str;
+
+	return raise_ras(id, msg,
+			 RAS_TYPE_INFO, RAS_SEV_INFO, NULL /* hwid */,
+			 &rank /* rank */, NULL /* jobid */, pool,
+			 NULL /* cont */, NULL /* objid */, NULL /* ctlop */,
+			 &evt);
+}
+
+int
+ds_notify_pool_rbld_start(uuid_t *pool, char *op_str)
+{
+	char *msg = "Pool rebuild started.";
+
+	return raise_rbld_ras(RAS_POOL_REBUILD_START, pool, op_str, msg);
+}
+
+int
+ds_notify_pool_rbld_end(uuid_t *pool, char *op_str, int op_rc)
+{
+	char	*msg, *status = NULL;
+	int	 rc = 0;
+
+	if (op_rc != 0) {
+		D_ASPRINTF(status, "failed: "DF_RC, DP_RC(op_rc));
+		if (status == NULL)
+			return -DER_NOMEM;
+	}
+	D_ASPRINTF(msg, "Pool rebuild %s", op_rc ? status : "finished.");
+	if (msg == NULL) {
+		rc = -DER_NOMEM;
+		goto out;
+	}
+
+	rc = raise_rbld_ras(RAS_POOL_REBUILD_START, pool, op_str, msg);
+out:
+	D_FREE(status);
+	D_FREE(msg);
 	return rc;
 }

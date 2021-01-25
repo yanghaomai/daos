@@ -56,11 +56,13 @@ type RASID uint32
 // RASID constant definitions matching those used when creating events either in
 // the control or data (iosrv) planes.
 const (
-	RASRankDown       RASID = C.RAS_RANK_DOWN
-	RASRankNoResponse RASID = C.RAS_RANK_NO_RESPONSE
-	RASPoolRepsUpdate RASID = C.RAS_POOL_REPS_UPDATE
-	RASSwimRankAlive  RASID = C.RAS_SWIM_RANK_ALIVE
-	RASSwimRankDead   RASID = C.RAS_SWIM_RANK_DEAD
+	RASRankDown         RASID = C.RAS_RANK_DOWN
+	RASRankNoResponse   RASID = C.RAS_RANK_NO_RESPONSE
+	RasPoolRebuildStart RASID = C.RAS_POOL_REBUILD_START
+	RasPoolRebuildEnd   RASID = C.RAS_POOL_REBUILD_END
+	RASPoolRepsUpdate   RASID = C.RAS_POOL_REPS_UPDATE
+	RASSwimRankAlive    RASID = C.RAS_SWIM_RANK_ALIVE
+	RASSwimRankDead     RASID = C.RAS_SWIM_RANK_DEAD
 )
 
 func (id RASID) String() string {
@@ -236,8 +238,6 @@ func (ps *PubSub) HandleClusterEvent(req *sharedpb.ClusterEventReq) (*sharedpb.C
 		return nil, errors.New("nil request")
 	case req.Event == nil:
 		return nil, errors.New("nil event in request")
-	case req.Sequence == 0:
-		ps.log.Debug("no sequence number in request")
 	}
 
 	event, err := NewFromProto(req.Event)

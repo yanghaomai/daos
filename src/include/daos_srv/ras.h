@@ -42,13 +42,15 @@
  *   The identifier just be prefixed by component_
  *   Carried over with the RAS event.
  */
-#define RAS_EVENT_LIST						\
-	X(RAS_RANK_UP,		"engine_status_up")		\
-	X(RAS_RANK_DOWN,	"engine_status_down")		\
-	X(RAS_RANK_NO_RESPONSE,	"engine_status_no_response")	\
-	X(RAS_POOL_REPS_UPDATE,	"pool_replicas_updated")	\
-	X(RAS_SWIM_RANK_ALIVE,	"swim_rank_alive")		\
-	X(RAS_SWIM_RANK_DEAD,	"swim_rank_dead")
+#define RAS_EVENT_LIST							\
+	X(RAS_RANK_UP,			"engine_status_up")		\
+	X(RAS_RANK_DOWN,		"engine_status_down")		\
+	X(RAS_RANK_NO_RESPONSE,		"engine_status_no_response")	\
+	X(RAS_POOL_REBUILD_START,	"pool_rebuild_started")		\
+	X(RAS_POOL_REBUILD_END,		"pool_rebuild_finished")	\
+	X(RAS_POOL_REPS_UPDATE,		"pool_replicas_updated")	\
+	X(RAS_SWIM_RANK_ALIVE,		"swim_rank_alive")		\
+	X(RAS_SWIM_RANK_DEAD,		"swim_rank_dead")
 
 /** Define RAS event enum */
 typedef enum {
@@ -154,5 +156,28 @@ ds_notify_pool_svc_update(uuid_t *pool, d_rank_list_t *svcl);
  */
 int
 ds_notify_swim_rank_dead(d_rank_t rank);
+
+/*
+ * Notify control plane of pool rebuild start events.
+ *
+ * \param[in] pool	UUID of DAOS pool in rebuild state.
+ * \param[in] op_str	String representation of operation code.
+ *
+ * \retval		Zero on success, non-zero otherwise.
+ */
+int
+ds_notify_pool_rbld_start(uuid_t *pool, char *op_str);
+
+/*
+ * Notify control plane of pool rebuild end events.
+ *
+ * \param[in] pool	UUID of DAOS pool in rebuild state.
+ * \param[in] op_str	String representation of operation code.
+ * \param[in] op_rc	Return code of last operation.
+ *
+ * \retval		Zero on success, non-zero otherwise.
+ */
+int
+ds_notify_pool_rbld_end(uuid_t *pool, char *op_str, int op_rc);
 
 #endif /* __DAOS_RAS_H_ */
